@@ -1,9 +1,10 @@
-package distributedGoWeb
+package main
 
 import (
 	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -24,18 +25,18 @@ type MsgListener net.Listener
 */
 func (s *server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(rw, "Welcome to my GoLang Server! ");
-	logger.Info(" Go Web Server started..!!! ")
+	logger.Info(" GET / 200 OK ")
 }
 
 func myHttpHandler(h http.HandlerFunc) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
-		logger.Info(" Request Received.. ")
+		logger.Infof(" GET %s 200 OK ", r.URL.Path )
 		h(rw, r)
 	}
 }
 
 func (s *server) register(path string, handler http.HandlerFunc ) {
-	logger.Info(" Registering [%s] ")
+	logger.Infof(" Registering [%s] ", path)
 	http.HandleFunc(path, myHttpHandler(handler));
 }
 
@@ -48,7 +49,7 @@ func (s *server) register(path string, handler http.HandlerFunc ) {
 */
 func (s *server) startWith(readTimeout int64, writeTimeout int64) error	{
 	s.sock = &http.Server{
-		Addr:           s.ip +":"+ string(s.port),
+		Addr:           ":"+ strconv.Itoa(int(s.port)),
 		Handler:        s,
 		ReadTimeout:    time.Duration(readTimeout),
 		WriteTimeout:   time.Duration(writeTimeout),
@@ -64,6 +65,7 @@ func (s *server) start() error	{
 }
 
 func (s *server) stop() error	{
+	logger.Info(" Web Server Stopped..!!! ")
 	return s.sock.Close()
 }
 

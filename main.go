@@ -1,4 +1,4 @@
-package distributedGoWeb
+package main
 
 /**
 	Reference:
@@ -8,7 +8,9 @@ package distributedGoWeb
  */
 
 import (
+	"fmt"
 	log "github.com/alexcesaro/log/stdlog"
+	"net/http"
 	"time"
 )
 
@@ -18,10 +20,19 @@ var (
 
 func main() {
 	s := createServer("127.0.0.1", int16(8080))
-	s.start();
-	defer s.stop()
-	defer logger.Close()
-	time.Sleep(time.Duration(20 * time.Second))
+
+	s.register("/check", func(rw http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(rw,"Check confirmed...")
+	})
+
+	if check( s.start() ) {
+		defer s.stop()
+		defer logger.Close()
+		time.Sleep(time.Duration(20 * time.Second))
+	} else {
+		logger.Error("Unable to start Go Web Server ")
+	}
+
 }
 
 /* Checks for error and prints if found */

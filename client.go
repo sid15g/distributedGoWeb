@@ -1,4 +1,4 @@
-package distributedGoWeb
+package main
 
 import (
 	"io/ioutil"
