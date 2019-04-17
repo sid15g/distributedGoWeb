@@ -9,6 +9,9 @@ package main
 
 import (
 	log "github.com/alexcesaro/log/stdlog"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
@@ -19,17 +22,14 @@ var (
 func main() {
 
 	s := createServer("127.0.0.1", int16(8080))
-	t := template{}
+	go shutdown(s);
 
+	t := template{}
 	s.register("/check", t.printOnly("Check confirmed..."),
 	).register("/check/sid", t.printOnly("Sid confirmed..."),
 	);
 
-	if check( s.start() ) {
-		defer s.stop()
-		defer logger.Close()
-		time.Sleep(time.Duration(20 * time.Second))
-	} else {
+	if check( s.start() ) == false {
 		logger.Error("Unable to start Go Web Server ")
 	}
 
@@ -42,4 +42,15 @@ func check(err error) bool {
 		return false
 	}
 	return true
+}
+
+func shutdown(s *server) {
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	sig := <-sigs
+	logger.Info(" Received", sig, "| Gracefully Shutting down the web-server in 5 seconds ")
+	time.Sleep(5 * time.Second)
+	s.stop()
+	logger.Close()
+	os.Exit(0)
 }

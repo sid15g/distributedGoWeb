@@ -12,8 +12,17 @@ import (
  *		https://gobyexample.com/worker-pools
  *		https://stackoverflow.com/questions/18293133/using-goroutines-for-background-work-inside-an-http-handler
  */
+
+type Method string
+
+const (
+	GET Method = "GET"
+    POST Method = "POST"
+)
+
 type HttpHandlerAdapter struct {
 	path string
+	method Method
 	defaultStatusCode int
 	handler http.HandlerFunc
 }
@@ -25,6 +34,12 @@ type server struct {
 	rmap map[string]HttpHandlerAdapter
 }
 
+func (s *server) status404NotFound(rw http.ResponseWriter, r *http.Request) {
+	rw.WriteHeader(http.StatusNotFound);
+	fmt.Fprintf(rw, " Error 404 Page Not Found ")
+	logger.Infof(" %s %s 404 NotFound ", r.Method, r.URL.Path )
+}
+
 /**
  *	For the dynamic aspect, the http.Request contains all information
  *  about the request and it’s parameters. You can read GET parameters
@@ -33,17 +48,21 @@ type server struct {
 */
 func (s *server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
+	mthd := r.Method
+
 	if r.URL.Path == "/" {
-		logger.Infof(" GET %s 200 OK ", r.URL.Path )
 		rw.WriteHeader(http.StatusOK);
-		fmt.Fprint(rw, "Welcome to my GoLang Server! ");
+		fmt.Fprint(rw, " Welcome to GoLang Web Server! ");
+		logger.Infof(" %s %s 200 OK ", mthd, r.URL.Path )
 	}else if val, ok := s.rmap[r.URL.Path]; ok {
-		rw.WriteHeader(val.defaultStatusCode);
-		val.handler(rw, r)
+		if string(val.method) == mthd {
+			rw.WriteHeader(val.defaultStatusCode);
+			val.handler(rw, r)
+		} else {
+			s.status404NotFound(rw, r)
+		}
 	} else {
-		rw.WriteHeader(http.StatusNotFound);
-		fmt.Fprintf(rw, " Error 404 Page Not Found ")
-		logger.Infof(" GET %s 404 NotFound ", r.URL.Path )
+		s.status404NotFound(rw, r)
 	}
 
 }
@@ -59,22 +78,27 @@ func (s *server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
  *  CPUs your system has or to whichever is bigger.
  *
  */
-func myHttpHandler(h http.HandlerFunc) HttpHandlerAdapter {
+func createHttpHandler(h http.HandlerFunc, method Method, defaultStatusCode int) HttpHandlerAdapter {
 
 	adapter := HttpHandlerAdapter {
-		handler: func (rw http.ResponseWriter, r *http.Request){
-			logger.Infof(" GET %s 200 OK ", r.URL.Path )
+		handler: func (rw http.ResponseWriter, r *http.Request) {
+			logger.Infof(" %s %s 200 OK ", r.Method, r.URL.Path )
 			h(rw, r)
 		},
-		defaultStatusCode: http.StatusOK};
+		defaultStatusCode: defaultStatusCode,
+		method: method};
 
 	return adapter;
+}
+
+func defaultHttpHandler(h http.HandlerFunc) HttpHandlerAdapter {
+	return createHttpHandler(h, GET, http.StatusOK)
 }
 
 
 func (s *server) register(path string, handler http.HandlerFunc) *server {
 	logger.Infof(" Registering [%s] ", path)
-	h := myHttpHandler(handler);
+	h := defaultHttpHandler(handler);
 	h.path = path
 	s.rmap[path] = h
 	return s
