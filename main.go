@@ -8,9 +8,7 @@ package main
  */
 
 import (
-	"fmt"
 	log "github.com/alexcesaro/log/stdlog"
-	"net/http"
 	"time"
 )
 
@@ -19,11 +17,13 @@ var (
 )
 
 func main() {
-	s := createServer("127.0.0.1", int16(8080))
 
-	s.register("/check", func(rw http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(rw,"Check confirmed...")
-	})
+	s := createServer("127.0.0.1", int16(8080))
+	t := template{}
+
+	s.register("/check", t.printOnly("Check confirmed..."),
+	).register("/check/sid", t.printOnly("Sid confirmed..."),
+	);
 
 	if check( s.start() ) {
 		defer s.stop()

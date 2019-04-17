@@ -10,9 +10,11 @@ import (
 /**
  *	Reference:
  *		https://gobyexample.com/worker-pools
+ *		https://stackoverflow.com/questions/18293133/using-goroutines-for-background-work-inside-an-http-handler
  */
 type HttpHandlerAdapter struct {
 	path string
+	defaultStatusCode int
 	handler http.HandlerFunc
 }
 
@@ -36,7 +38,7 @@ func (s *server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		rw.WriteHeader(http.StatusOK);
 		fmt.Fprint(rw, "Welcome to my GoLang Server! ");
 	}else if val, ok := s.rmap[r.URL.Path]; ok {
-		rw.WriteHeader(http.StatusOK);
+		rw.WriteHeader(val.defaultStatusCode);
 		val.handler(rw, r)
 	} else {
 		rw.WriteHeader(http.StatusNotFound);
@@ -63,16 +65,19 @@ func myHttpHandler(h http.HandlerFunc) HttpHandlerAdapter {
 		handler: func (rw http.ResponseWriter, r *http.Request){
 			logger.Infof(" GET %s 200 OK ", r.URL.Path )
 			h(rw, r)
-		}};
+		},
+		defaultStatusCode: http.StatusOK};
 
 	return adapter;
 }
 
-func (s *server) register(path string, handler http.HandlerFunc ) {
+
+func (s *server) register(path string, handler http.HandlerFunc) *server {
 	logger.Infof(" Registering [%s] ", path)
 	h := myHttpHandler(handler);
 	h.path = path
 	s.rmap[path] = h
+	return s
 }
 
 
@@ -110,7 +115,7 @@ func createServer(ip string, port int16) *server {
 	s.rmap = make(map[string]HttpHandlerAdapter)
 
 	//Register the handler
-	s.register("/", myHttpHandler(s.ServeHTTP).handler);
+	//s.register("/", myHttpHandler(s.ServeHTTP).handler);
 	return s;
 
 }
