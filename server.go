@@ -106,6 +106,16 @@ func (s *server) register(path string, handler http.HandlerFunc) *server {
 
 
 /**
+ * 	Reference:
+ * 		https://www.alexedwards.net/blog/serving-static-sites-with-go
+*/
+func (s *server) serveStatic(path string) *server {
+	//TODO code
+	return s;
+}
+
+
+/**
  * Can also use http.ListenAndServe(":8080", nil)
  * But thats a naive implementation
  * Server.ListenAndServe() implements KeepAlive internally and
@@ -134,12 +144,7 @@ func (s *server) stop() error	{
 }
 
 func createServer(ip string, port int16) *server {
-
 	s := &server{ip:ip, port:port}
 	s.rmap = make(map[string]HttpHandlerAdapter)
-
-	//Register the handler
-	//s.register("/", myHttpHandler(s.ServeHTTP).handler);
 	return s;
-
 }
